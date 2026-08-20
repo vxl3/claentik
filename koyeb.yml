@@ -1,0 +1,23 @@
+# إعدادات نشر Koyeb (اختياري — للنشر عبر CLI)
+# الاستخدام:
+#   koyeb app create cleantik
+#   koyeb service create cleantik-bot --app cleantik --docker . --env-file .env.koyeb
+name: cleantik-bot
+regions:
+  - was
+instances:
+  type: nano
+  min: 1
+  max: 1
+ports:
+  - port: 8080
+    protocol: http
+routes:
+  - path: /
+env:
+  DATABASE_URL: sqlite+aiosqlite:///./tiktokbot.db
+  LOG_LEVEL: INFO
+  LOG_DIR: logs
+  TIKTOK_AUTOMATION_ENABLED: "true"
+  TIKTOK_BROWSER_HEADLESS: "true"
+  TIKTOK_PERSIST_SESSION: "false"
