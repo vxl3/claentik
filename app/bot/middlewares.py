@@ -53,19 +53,22 @@ class UserMiddleware(BaseMiddleware):
 
 
 class RateLimitMiddleware(BaseMiddleware):
-    """Basic per-user flood protection."""
+    """Basic per-user flood protection.
+
+    Registered on the ``message`` event, so ``event`` is a Message directly
+    (not an Update).
+    """
 
     async def __call__(
         self,
-        handler: Callable[[Update, dict[str, Any]], Awaitable[Any]],
-        event: Update,
+        handler: Callable[[Message, dict[str, Any]], Awaitable[Any]],
+        event: Message,
         data: dict[str, Any],
     ) -> Any:
-        msg: Message | None = event.message
-        if msg is None or msg.from_user is None:
+        if event.from_user is None:
             return await handler(event, data)
 
-        uid = msg.from_user.id
+        uid = event.from_user.id
         now = time.monotonic()
         bucket = _buckets[uid]
         while bucket and now - bucket[0] > RATE_LIMIT_WINDOW:
