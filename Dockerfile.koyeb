@@ -1,0 +1,24 @@
+# Dockerfile خفيف خاص بالنشر على Koyeb (الطبقة المجانية 512MB)
+# لا يثبّت Playwright/Chromium لأن أتمتة TikTok لا تعمل على 512MB أصلاً.
+# البوت الأساسي (قوائم + حسابات + إحصائيات + لوحة إدارة) يعمل بشكل كامل.
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+# مكتبات النظام الخفيفة فقط (لا حاجة لمكتبات Chromium هنا)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# تثبيت المتطلبات الأساسية فقط (بدون playwright و asyncpg)
+COPY requirements-termux.txt .
+RUN pip install --no-cache-dir -r requirements-termux.txt
+
+COPY . .
+
+# حجم الطبقة المجانية على Koyeb هو 512MB، لذا نحدد ذاكرة الحاوية
+CMD ["python", "main.py"]

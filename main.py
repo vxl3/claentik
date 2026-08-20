@@ -21,6 +21,7 @@ from app.database.engine import close_engine, get_engine
 from app.dependencies import Container, set_container
 from app.models import UserRole  # noqa: F401 - ensure models are registered
 from app.tiktok.session_manager import shutdown as tiktok_shutdown
+from app.utils.health import start_health_server
 from app.utils.logger import setup_logging
 from app.workers.operation_manager import OperationManager
 
@@ -70,6 +71,10 @@ async def main() -> None:
     set_container(Container(bot=bot, operation_manager=operation_manager, fsm_storage=storage))
 
     dp = build_dispatcher(bot, storage)
+
+    # Keep the container "healthy" on platforms that expect an HTTP port
+    # (e.g. Koyeb). Harmless locally.
+    start_health_server()
 
     logger.info("Bot is starting...")
 
