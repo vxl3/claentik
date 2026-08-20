@@ -30,6 +30,7 @@ from app.tiktok.errors import (
 )
 from app.tiktok.models import LoginChallenge
 from app.tiktok.registry import register
+from app.tiktok.session_manager import PlaywrightUnavailableError
 
 router = Router(name="login")
 
@@ -74,7 +75,11 @@ async def login_cancel(query: CallbackQuery, state: FSMContext) -> None:
 @router.callback_query(F.data == cb.CB_LOGIN_QR)
 async def login_qr(query: CallbackQuery, user: User) -> None:
     await query.answer()
-    client = await create_client()
+    try:
+        client = await create_client()
+    except PlaywrightUnavailableError as exc:
+        await query.message.answer(f"⚠️ {exc}", reply_markup=back_to_menu())
+        return
     # store temporarily under a login key, re-register under the real id later
     temp_store.put(_login_client_key(user.telegram_id), client, ttl=600)
 
@@ -186,7 +191,13 @@ async def credentials_password(message: Message, state: FSMContext, user: User) 
         await state.clear()
         return
 
-    client = await create_client()
+    client = None
+    try:
+        client = await create_client()
+    except PlaywrightUnavailableError as exc:
+        await message.answer(f"⚠️ {exc}", reply_markup=back_to_menu())
+        await state.clear()
+        return
     temp_store.put(_login_client_key(user.telegram_id), client, ttl=600)
     await client.set_credentials(identifier, password)
 

@@ -12,10 +12,16 @@ from app.tiktok.session_manager import new_context
 
 
 async def create_client() -> TikTokClient:
-    """Create a fresh browser context + client (not yet registered)."""
-    from app.tiktok.playwright_client import PlaywrightTikTokClient
+    """Create a fresh browser context + client (not yet registered).
 
+    Raises PlaywrightUnavailableError on platforms where browser automation is
+    not supported (e.g. Android/Termux).
+    """
+    # new_context() raises a clear error if Playwright is unavailable, so call
+    # it before importing the Playwright-based client.
     context = await new_context()
+    from app.tiktok.playwright_client import PlaywrightTikTokClient  # noqa: PLC0415
+
     return PlaywrightTikTokClient(context)
 
 

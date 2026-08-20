@@ -2,27 +2,53 @@
 
 The browser is shared across all accounts (efficient), but every account gets
 its own isolated BrowserContext so sessions and cookies never mix.
+
+Playwright is imported lazily so the bot can start and serve its core features
+(menus, accounts, owner panel, ...) even on platforms where Playwright is not
+available (e.g. Android/Termux). Browser automation is only attempted when a
+login/cleanup action is actually requested, and fails with a clear message if
+Playwright is missing.
 """
 from __future__ import annotations
 
 import asyncio
 
 from loguru import logger
-from playwright.async_api import Browser, BrowserContext, async_playwright
 
 from app.config.settings import get_settings
 
 _playwright = None
-_browser: Browser | None = None
+_browser = None
 _lock = asyncio.Lock()
 _client_count = 0
 
 
-async def _ensure_browser() -> Browser:
+class PlaywrightUnavailableError(RuntimeError):
+    """Raised when browser automation is requested but Playwright is missing."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "أتمتة TikTok غير متاحة على هذا الجهاز (متصفح Chromium غير مدعوم هنا). "
+            "هذه الميزة تتطلب التشغيل على سيرفر أو كمبيوتر."
+        )
+
+
+def _import_playwright():
+    """Import the playwright async API on demand."""
+    from playwright.async_api import async_playwright  # noqa: PLC0415
+
+    return async_playwright
+
+
+async def _ensure_browser():
     """Start Playwright and launch Chromium once."""
     global _playwright, _browser
     if _browser is not None:
         return _browser
+    try:
+        async_playwright = _import_playwright()
+    except ImportError as exc:
+        raise PlaywrightUnavailableError() from exc
     settings = get_settings()
     _playwright = await async_playwright().start()
     _browser = await _playwright.chromium.launch(
@@ -33,7 +59,7 @@ async def _ensure_browser() -> Browser:
     return _browser
 
 
-async def new_context() -> BrowserContext:
+async def new_context():
     """Create a fresh, isolated browser context for one account."""
     browser = await _ensure_browser()
     context = await browser.new_context(
@@ -49,7 +75,7 @@ async def new_context() -> BrowserContext:
     return context
 
 
-async def release_context(context: BrowserContext) -> None:
+async def release_context(context) -> None:
     """Close a context and release resources."""
     global _client_count
     try:

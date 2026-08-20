@@ -1,0 +1,11 @@
+# Dependencies for running the bot on Termux (Android).
+# Playwright (browser automation for TikTok) is NOT available on Android,
+# and asyncpg (PostgreSQL) is not needed when using SQLite — both are omitted
+# here so the bot can run its core features on a phone.
+aiogram>=3.7,<4.0
+SQLAlchemy>=2.0,<2.1
+aiosqlite>=0.20
+alembic>=1.13
+pydantic>=2.7
+pydantic-settings>=2.2
+loguru>=0.7
