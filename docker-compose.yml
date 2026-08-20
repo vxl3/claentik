@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tiktokbot
+      POSTGRES_PASSWORD: tiktokbot_password
+      POSTGRES_DB: tiktokbot
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tiktokbot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  bot:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Override the DB host to point at the compose service.
+      DATABASE_URL: postgresql+asyncpg://tiktokbot:tiktokbot_password@db:5432/tiktokbot
+      TIKTOK_BROWSER_HEADLESS: "true"
+    volumes:
+      - ./logs:/app/logs
+
+volumes:
+  pgdata:
